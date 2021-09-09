@@ -3907,7 +3907,7 @@ export class Node {
         type: 'single',
         path: path,
         paths: [path]
-      })
+      }, node)
     }
 
     const menu = new ContextMenu(items, { close: onClose })
@@ -4056,24 +4056,28 @@ export class Node {
    * @private
    */
   updateNodeName () {
-    const count = this.childs ? this.childs.length : 0
-    let nodeName
-    if (this.type === 'object' || this.type === 'array') {
-      if (this.editor.options.onNodeName) {
-        try {
-          nodeName = this.editor.options.onNodeName({
-            path: this.getPath(),
-            size: count,
-            type: this.type
-          })
-        } catch (err) {
-          console.error('Error in onNodeName callback: ', err)
+    if (this.editor.options.formatNodeValue) {
+      this.editor.options.formatNodeValue(this)
+    } else {
+      const count = this.childs ? this.childs.length : 0
+      let nodeName
+      if (this.type === 'object' || this.type === 'array') {
+        if (this.editor.options.onNodeName) {
+          try {
+            nodeName = this.editor.options.onNodeName({
+              path: this.getPath(),
+              size: count,
+              type: this.type
+            })
+          } catch (err) {
+            console.error('Error in onNodeName callback: ', err)
+          }
         }
-      }
 
-      this.dom.value.textContent = (this.type === 'object')
-        ? ('{' + (nodeName || count) + '}')
-        : ('[' + (nodeName || count) + ']')
+        this.dom.value.textContent = (this.type === 'object')
+          ? ('{' + (nodeName || count) + '}')
+          : ('[' + (nodeName || count) + ']')
+      }
     }
   }
 

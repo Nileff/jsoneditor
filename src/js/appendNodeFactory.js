@@ -203,7 +203,7 @@ export function appendNodeFactory (Node) {
         type: 'append',
         path: path,
         paths: [path]
-      })
+      }, node)
     }
 
     const menu = new ContextMenu(items, { close: onClose })

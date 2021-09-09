@@ -1674,6 +1674,7 @@ treemode._createTable = function () {
  *                               is being closed.
  */
 treemode.showContextMenu = function (anchor, onClose) {
+  const node = this
   let items = []
   const selectedNodes = this.multiselection.nodes.slice()
 
@@ -1704,7 +1705,7 @@ treemode.showContextMenu = function (anchor, onClose) {
       type: 'multiple',
       path: paths[0],
       paths: paths
-    })
+    }, node)
   }
 
   const menu = new ContextMenu(items, { close: onClose })
