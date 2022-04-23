@@ -98,7 +98,8 @@ export class Node {
         const editable = this.editor.options.onEditable({
           field: this.field,
           value: this.value,
-          path: this.getPath()
+          path: this.getPath(),
+          type: this.type,
         })
 
         if (typeof editable === 'boolean') {
@@ -440,7 +441,14 @@ export class Node {
       }
     }
 
-    if (this.type === 'array') {
+    const { customTypes = [] } = this.editor?.options || {}
+    const customType = customTypes.find(t => t.type === this.type)
+
+    if (customType && customType.setValue) {
+      // customType
+      const getCustomValue = customType.setValue
+      getCustomValue(value, this)
+    } else if (this.type === 'array') {
       // array
       if (!this.childs) {
         this.childs = []
@@ -1832,7 +1840,9 @@ export class Node {
       }
 
       // strip formatting from the contents of the editable div
-      stripFormatting(domValue)
+      if (this.editable.value) {
+        stripFormatting(domValue)
+      }
 
       this._updateDomDefault()
     }
@@ -2251,7 +2261,12 @@ export class Node {
     // apply value to DOM
     const domValue = this.dom.value
     if (domValue) {
-      if (this.type === 'array' || this.type === 'object') {
+      const { customTypes = [] } = this.editor?.options || {}
+      const customType = customTypes.find(t => t.type === this.type)
+
+      if (customType && customType.setDomValue) {
+        customType.setDomValue(this.value, domValue)
+      } else if (this.type === 'array' || this.type === 'object') {
         this.updateNodeName()
       } else {
         const escapedValue = this._escapeHTML(this.value)
@@ -2399,9 +2414,16 @@ export class Node {
       } else {
         // create an editable or read-only div
         domValue = document.createElement('div')
-        domValue.contentEditable = this.editable.value
-        domValue.spellcheck = false
-        domValue.innerHTML = this._escapeHTML(this.value)
+        const { customTypes = [] } = this.editor?.options || {}
+        const customType = customTypes.find(t => t.type === this.type)
+
+        if (customType && customType.setDomValue) {
+          customType.setDomValue(this.value, domValue)
+        } else {
+          domValue.contentEditable = this.editable.value
+          domValue.spellcheck = false
+          domValue.innerHTML = this._escapeHTML(this.value)
+        }
       }
     }
 
@@ -3957,6 +3979,13 @@ export class Node {
    * @private
    */
   _getType (value) {
+    const { customTypes = [] } = this.editor?.options || {}
+    for (let i = 0; i < customTypes.length; i++) {
+      const type = customTypes[i]
+      if (type.checkType && type.checkType(value)) {
+        return type.type
+      }
+    }
     if (value instanceof Array) {
       return 'array'
     }
@@ -4056,28 +4085,24 @@ export class Node {
    * @private
    */
   updateNodeName () {
-    if (this.editor.options.formatNodeValue) {
-      this.editor.options.formatNodeValue(this)
-    } else {
-      const count = this.childs ? this.childs.length : 0
-      let nodeName
-      if (this.type === 'object' || this.type === 'array') {
-        if (this.editor.options.onNodeName) {
-          try {
-            nodeName = this.editor.options.onNodeName({
-              path: this.getPath(),
-              size: count,
-              type: this.type
-            })
-          } catch (err) {
-            console.error('Error in onNodeName callback: ', err)
-          }
+    const count = this.childs ? this.childs.length : 0
+    let nodeName
+    if (this.type === 'object' || this.type === 'array') {
+      if (this.editor.options.onNodeName) {
+        try {
+          nodeName = this.editor.options.onNodeName({
+            path: this.getPath(),
+            size: count,
+            type: this.type
+          })
+        } catch (err) {
+          console.error('Error in onNodeName callback: ', err)
         }
-
-        this.dom.value.textContent = (this.type === 'object')
-          ? ('{' + (nodeName || count) + '}')
-          : ('[' + (nodeName || count) + ']')
       }
+
+      this.dom.value.textContent = (this.type === 'object')
+        ? ('{' + (nodeName || count) + '}')
+        : ('[' + (nodeName || count) + ']')
     }
   }
 
