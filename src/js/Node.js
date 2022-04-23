@@ -2265,7 +2265,12 @@ export class Node {
       const customType = customTypes.find(t => t.type === this.type)
 
       if (customType && customType.setDomValue) {
-        customType.setDomValue(this.value, domValue)
+        const setValue = v => {
+          this.value = v
+          this.updateDom()
+          this._debouncedOnChangeValue()
+        }
+        customType.setDomValue(this.value, domValue, setValue.bind(this))
       } else if (this.type === 'array' || this.type === 'object') {
         this.updateNodeName()
       } else {
@@ -2418,7 +2423,12 @@ export class Node {
         const customType = customTypes.find(t => t.type === this.type)
 
         if (customType && customType.setDomValue) {
-          customType.setDomValue(this.value, domValue)
+          const setValue = v => {
+            this.value = v
+            this.updateDom()
+            this._debouncedOnChangeValue()
+          }
+          customType.setDomValue(this.value, domValue, setValue.bind(this))
         } else {
           domValue.contentEditable = this.editable.value
           domValue.spellcheck = false
